@@ -1,6 +1,6 @@
 {
   "name": "@beyond.dev/openapi-react",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Suspenseful React hooks for openapi-fetch.",
   "type": "module",
   "engines": {

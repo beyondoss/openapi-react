@@ -1,4 +1,7 @@
 name: Release
+permissions:
+  id-token: write # Required for OIDC
+  contents: read
 on:
   push:
     branches: [main]
@@ -31,8 +34,6 @@ jobs:
         run: mise run build
       - name: publish
         if: steps.version.outputs.changed == 'true'
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
-          npm publish --access public
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
