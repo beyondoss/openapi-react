@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   treeshake: true,
-  deps: { neverBundle: ["react", "react-dom"] },
+  deps: { neverBundle: ["react", "react-dom", "openapi-typescript-helpers"] },
 });
