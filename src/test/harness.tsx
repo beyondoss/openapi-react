@@ -46,23 +46,15 @@ export function renderAction<T>(hookFn: () => T) {
   return renderHook(hookFn);
 }
 
-// Infer F from opts.transform so callers only need to write
-// makeClient<MyPaths>({ transform: camelize }) — no second type arg required.
-type InferTransform<Paths extends {}, Opts> = Opts extends {
-  transform: infer F extends <T>(data: T) => unknown;
-} ? ClientOptions<Paths, F>
-  : ClientOptions<Paths>;
-
-export function makeClient<
-  Paths extends {},
-  Opts extends Partial<ClientOptions<Paths>> = {},
->(opts?: Opts) {
-  return createClient({
+export function makeClient<Paths extends {}>(
+  opts?: Partial<ClientOptions<Paths>>,
+) {
+  return createClient<Paths>({
     baseUrl: server.baseUrl,
     staleTime: 0,
     retries: 0,
     ...opts,
-  } as InferTransform<Paths, Opts>);
+  });
 }
 
 export { act, waitFor };

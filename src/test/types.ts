@@ -13,19 +13,32 @@ export interface Owner {
 
 export type ApiError = { error: { message: string } };
 
+// The interface mirrors the shape `openapi-typescript` emits: every parameter
+// and `requestBody` slot is always present, with `?: never` standing in for
+// "absent". This is the canonical contract the library targets, so test types
+// should follow the same convention as real generated types.
 export interface TestPaths {
   "/pets": {
     get: {
       parameters: {
         query?: { limit?: number; status?: "active" | "inactive" };
+        header?: never;
+        path?: never;
+        cookie?: never;
       };
+      requestBody?: never;
       responses: {
         200: { content: { "application/json": Pet[] } };
         500: { content: { "application/json": ApiError } };
       };
     };
     post: {
-      parameters: {};
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
       requestBody: {
         content: { "application/json": Omit<Pet, "id"> };
       };
@@ -38,16 +51,24 @@ export interface TestPaths {
   "/pets/{id}": {
     get: {
       parameters: {
-        path: { id: number };
         query?: { include?: "owner"[] };
+        header?: never;
+        path: { id: number };
+        cookie?: never;
       };
+      requestBody?: never;
       responses: {
         200: { content: { "application/json": Pet } };
         404: { content: { "application/json": ApiError } };
       };
     };
     put: {
-      parameters: { path: { id: number } };
+      parameters: {
+        query?: never;
+        header?: never;
+        path: { id: number };
+        cookie?: never;
+      };
       requestBody: {
         content: { "application/json": Partial<Omit<Pet, "id">> };
       };
@@ -57,7 +78,13 @@ export interface TestPaths {
       };
     };
     delete: {
-      parameters: { path: { id: number } };
+      parameters: {
+        query?: never;
+        header?: never;
+        path: { id: number };
+        cookie?: never;
+      };
+      requestBody?: never;
       responses: {
         204: { content: never };
         404: { content: { "application/json": ApiError } };
@@ -66,7 +93,13 @@ export interface TestPaths {
   };
   "/owners/{id}": {
     get: {
-      parameters: { path: { id: number } };
+      parameters: {
+        query?: never;
+        header?: never;
+        path: { id: number };
+        cookie?: never;
+      };
+      requestBody?: never;
       responses: {
         200: { content: { "application/json": Owner } };
         404: { content: { "application/json": ApiError } };

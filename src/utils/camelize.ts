@@ -27,21 +27,3 @@ export function camelize<T>(obj: T): Camelize<T> {
   }
   return obj as Camelize<T>;
 }
-
-const SNAKE_RE = /[A-Z]/g;
-
-/**
- * Shallow snake_case transformation — only top-level keys are renamed.
- * Used for request bodies where nested values (e.g. WebAuthn credentials)
- * must not be touched.
- */
-export function snakenize(
-  obj: Record<string, unknown>,
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    const snake = key.replace(SNAKE_RE, (c) => `_${c.toLowerCase()}`);
-    result[snake] = value;
-  }
-  return result;
-}

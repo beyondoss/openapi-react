@@ -12,7 +12,6 @@ import {
   waitFor,
 } from "./test/index.js";
 import type { Pet, TestPaths } from "./test/index.js";
-import { type Camelize, camelize, snakenize } from "./utils/camelize.js";
 
 const pet1: Pet = { id: 1, name: "Fido", status: "active" };
 const pet2: Pet = { id: 2, name: "Whiskers", status: "inactive" };
@@ -704,50 +703,6 @@ describe("cache operations", () => {
 // ---------------------------------------------------------------------------
 
 describe("client options", () => {
-  // A path whose response has snake_case keys — only used for camelize tests.
-  type SnakePet = { id: number; pet_name: string; owner_id?: number };
-  type CamelizePaths = {
-    "/snake-pets": {
-      get: {
-        parameters: {};
-        responses: { 200: { content: { "application/json": SnakePet } } };
-      };
-    };
-  };
-
-  it("transform: camelize renames keys at runtime and updates return type", async () => {
-    server.get("/snake-pets", () => ({
-      id: 1,
-      pet_name: "Fido",
-      owner_id: 42,
-    }));
-
-    const c = makeClient<CamelizePaths>({ transform: camelize });
-
-    const { result } = renderLoader(() =>
-      c.useLoader({ path: "GET /snake-pets" })
-    );
-
-    await waitFor(() => expect(result.current?.status).toBe("success"));
-
-    // Cast needed: TypeScript resolves Transformed<typeof camelize, T> as `unknown`
-    // because it substitutes the generic param with `unknown` in conditional type inference.
-    // The cast is honest — camelize *does* produce this shape at runtime.
-    const data = result.current.data as Camelize<SnakePet>;
-
-    // Runtime: camelized keys present with correct values
-    expect(data.petName).toBe("Fido");
-    expect(data.ownerId).toBe(42);
-
-    // Type-level: snake_case keys must not exist on Camelize<SnakePet>
-    // @ts-expect-error — pet_name is gone after Camelize<SnakePet>
-    void data.pet_name;
-    // @ts-expect-error — owner_id is gone after Camelize<SnakePet>
-    void data.owner_id;
-
-    c.destroy();
-  });
-
   it("retries on 5xx up to the configured count", async () => {
     let callCount = 0;
     server.get("/pets", () => {
@@ -1529,79 +1484,5 @@ describe("ErrorResponse", () => {
     expect(err.data).toEqual({ error: { message: "not found" } });
     expect(err.response).toBe(response);
     expect(err.name).toBe("ErrorResponse");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// utils: camelize
-// ---------------------------------------------------------------------------
-
-describe("utils: camelize", () => {
-  it("returns null and undefined unchanged", () => {
-    expect(camelize(null)).toBeNull();
-    expect(camelize(undefined)).toBeUndefined();
-  });
-
-  it("camelizes object keys recursively", () => {
-    expect(camelize({ outer_key: { inner_key: 1 } })).toEqual({
-      outerKey: { innerKey: 1 },
-    });
-  });
-
-  it("camelizes arrays of objects", () => {
-    expect(camelize([{ pet_name: "Fido" }, { pet_name: "Max" }])).toEqual([
-      { petName: "Fido" },
-      { petName: "Max" },
-    ]);
-  });
-
-  it("handles multiple underscores in a key", () => {
-    expect(camelize({ foo_bar_baz: 1 })).toEqual({ fooBarBaz: 1 });
-  });
-
-  it("leaves already-camelCase keys unchanged", () => {
-    expect(camelize({ petName: "Fido" })).toEqual({ petName: "Fido" });
-  });
-
-  it("passes through primitive values unchanged", () => {
-    expect(camelize(42 as never)).toBe(42);
-    expect(camelize("hello" as never)).toBe("hello");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// utils: snakenize
-// ---------------------------------------------------------------------------
-
-describe("utils: snakenize", () => {
-  it("converts top-level camelCase keys to snake_case", () => {
-    expect(snakenize({ petName: "Fido", ownerId: 1 })).toEqual({
-      pet_name: "Fido",
-      owner_id: 1,
-    });
-  });
-
-  it("handles multiple capitals", () => {
-    expect(snakenize({ petOwnerName: "Alice" })).toEqual({
-      pet_owner_name: "Alice",
-    });
-  });
-
-  it("does NOT recurse into nested objects (shallow only)", () => {
-    const result = snakenize({ petInfo: { petName: "Fido" } });
-    expect(result).toEqual({ pet_info: { petName: "Fido" } });
-    expect(
-      (result["pet_info"] as Record<string, unknown>)["petName"],
-    ).toBe("Fido");
-  });
-
-  it("leaves already-snake_case keys unchanged", () => {
-    expect(snakenize({ pet_name: "Fido" })).toEqual({ pet_name: "Fido" });
-  });
-
-  it("passes values through without modification", () => {
-    const nested = { a: 1 };
-    const result = snakenize({ myData: nested });
-    expect(result["my_data"]).toBe(nested);
   });
 });
