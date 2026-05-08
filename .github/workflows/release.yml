@@ -1,0 +1,38 @@
+name: Release
+on:
+  push:
+    branches: [main]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+      - name: check version changed
+        id: version
+        run: |
+          prev=$(git show HEAD^:package.json | jq -r '.version' 2>/dev/null || echo "")
+          curr=$(jq -r '.version' package.json)
+          echo "prev=$prev"
+          echo "curr=$curr"
+          if [ "$prev" != "$curr" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: jdx/mise-action@v4
+        if: steps.version.outputs.changed == 'true'
+      - name: install:ts
+        if: steps.version.outputs.changed == 'true'
+        run: mise run install:ts
+      - name: build
+        if: steps.version.outputs.changed == 'true'
+        run: mise run build
+      - name: publish
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

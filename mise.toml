@@ -1,0 +1,22 @@
+[tools]
+dprint = "latest"
+node = "lts"
+yamlfmt = "latest"
+
+[tasks."build"]
+run = "npm run build"
+
+[tasks."check:types"]
+run = "npm run typecheck"
+
+[tasks."check:fmt"]
+run = "dprint check"
+
+[tasks."format"]
+run = "dprint fmt"
+
+[tasks."install:ts"]
+run = "npm ci"
+
+[tasks."test"]
+run = "npm test"
