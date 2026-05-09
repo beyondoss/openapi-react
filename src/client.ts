@@ -611,13 +611,18 @@ export function createClient<Paths extends {}>(
     );
 
     if (!disabled && (!cached || cached.status === "fetching")) {
-      cached = cache.get(cacheKey) as
-        | CachedResponse<Paths, Path>
-        | undefined;
-      const promise = cached?.promise ?? load({ ...options, staleTime });
+      cached = cache.get(cacheKey) as CachedResponse<Paths, Path> | undefined;
+      // Kick off the fetch if not already in-flight. load() writes the cache
+      // entry synchronously before its first await, so the promise we hand to
+      // React.use() is always the stable per-key reference — never a transient
+      // outer async-function promise that changes identity on re-render.
+      if (!cached) {
+        load({ ...options, staleTime }).catch(() => {});
+        cached = cache.get(cacheKey) as CachedResponse<Paths, Path> | undefined;
+      }
 
       if (suspense) {
-        throw promise;
+        React.use(cached!.promise);
       }
     }
 
