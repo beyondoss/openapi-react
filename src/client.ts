@@ -508,6 +508,10 @@ export function createClient<Paths extends {}>(
         : { path: options.path },
     );
     const didMount = React.useRef(false);
+    const optionsRef = React.useRef(options);
+    React.useLayoutEffect(() => {
+      optionsRef.current = options;
+    });
     const intervalTime = disabled
       ? undefined
       : typeof refetchInterval === "function"
@@ -517,34 +521,36 @@ export function createClient<Paths extends {}>(
       )
       : refetchInterval;
 
+    const doRefetch = React.useEffectEvent(() => {
+      load({ ...options, staleTime }).catch(() => {});
+    });
+
+    const doIntervalRefetch = React.useEffectEvent(() => {
+      load({ ...options, staleTime: 0 }).catch(() => {});
+    });
+
+    const handleVisibilityChange = React.useEffectEvent(() => {
+      if (document.visibilityState === "visible") {
+        doRefetch();
+      }
+    });
+
     React.useEffect(() => {
       if (disabled) return;
 
-      const refetch = () => {
-        load({ ...options, staleTime }).catch(() => {});
-      };
-
       if (refetchOnMount && !didMount.current) {
-        refetch();
+        doRefetch();
       }
       didMount.current = true;
 
       let interval: ReturnType<typeof setInterval> | undefined;
 
       if (intervalTime) {
-        interval = setInterval(() => {
-          load({ ...options, staleTime: 0 }).catch(() => {});
-        }, intervalTime);
+        interval = setInterval(doIntervalRefetch, intervalTime);
       }
 
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === "visible") {
-          refetch();
-        }
-      };
-
       if (refetchOnFocus) {
-        window.addEventListener("focus", refetch, false);
+        window.addEventListener("focus", doRefetch, false);
         window.addEventListener(
           "visibilitychange",
           handleVisibilityChange,
@@ -553,16 +559,15 @@ export function createClient<Paths extends {}>(
       }
 
       if (refetchOnReconnect) {
-        window.addEventListener("online", refetch, false);
+        window.addEventListener("online", doRefetch, false);
       }
 
       return () => {
         if (interval) clearInterval(interval);
-        window.removeEventListener("focus", refetch);
+        window.removeEventListener("focus", doRefetch);
         window.removeEventListener("visibilitychange", handleVisibilityChange);
-        window.removeEventListener("online", refetch);
+        window.removeEventListener("online", doRefetch);
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       cacheKey,
       refetchOnMount,
@@ -652,10 +657,9 @@ export function createClient<Paths extends {}>(
         invalidate,
         refetch() {
           invalidate();
-          return load(options as LoadOptions<Paths, Path>);
+          return load(optionsRef.current as LoadOptions<Paths, Path>);
         },
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cacheKey, cached]);
   }
 
